@@ -1,0 +1,4 @@
+transformers[torch]==4.3.3
+rouge-score==0.0.4
+sentencepiece==0.1.95
+protobuf==3.11.1

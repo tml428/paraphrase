@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  python3.8
+
+  Paraphrase Model on Lambda
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  pytorchEndpoint:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      MemorySize: 5000
+      Timeout: 900
+      Events:
+        ApiEndpoint:
+          Type: HttpApi
+          Properties:
+            Path: /inference
+            Method: post
+            TimeoutInMillis: 55000
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./paraphrase
+      DockerTag: python3.8-v1
+
+Outputs:
+  InferenceApi:
+    Description: 'API Gateway endpoint URL for Prod stage for inference function'
+    Value: !Sub 'https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/inference'
