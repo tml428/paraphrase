@@ -19,7 +19,7 @@ def get_normalized_rouge_output(output):
 
 scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
 
-def predict(original_sentences):
+def predict(original_sentences, method="beam", maxProb = 0.9, minProb = 0.7):
     paraphrased_content = []
     
     for sentence in original_sentences:
@@ -29,23 +29,31 @@ def predict(original_sentences):
         text =  "paraphrase: " + sentence + " </s>"
         encoding = tokenizer.encode_plus(text, pad_to_max_length=True, return_tensors="pt")
         input_ids, attention_masks = encoding["input_ids"], encoding["attention_mask"]
-        outputs = model.generate(
-            input_ids=input_ids, attention_mask=attention_masks,
-            max_length=256,
-            early_stopping=True,
 
-            # this block include args to using beam search
-            num_return_sequences=10,
-            num_beams=50,
-            num_beam_groups=50,
-            diversity_penalty=0.4
+        if method == "top_k":
+            outputs = model.generate(
+                input_ids=input_ids, attention_mask=attention_masks,
+                max_length=256,
+                early_stopping=True,
 
-            # this block include args to using top k/p samplings
-            # do_sample=True,
-            # top_k=120,
-            # top_p=0.7,
-            # temperature=0.7
-        )
+                # this block include args to using top k/p samplings
+                do_sample=True,
+                top_k=120,
+                top_p=0.7,
+                temperature=0.7
+            )
+        else:
+            outputs = model.generate(
+                input_ids=input_ids, attention_mask=attention_masks,
+                max_length=256,
+                early_stopping=True,
+
+                # this block include args to using beam search
+                num_return_sequences=10,
+                num_beams=50,
+                num_beam_groups=50,
+                diversity_penalty=0.4
+            )
 
         decoded_ouputs = list(map(get_decoded_output, outputs))
 
@@ -74,15 +82,16 @@ def predict(original_sentences):
 def paraphrase(event, context):
     try:
         body = json.loads(event['body'])
-        paraphrased_content = predict(body['original_content'])
+        paraphrased_content = predict(body['original_content'], body['method'], body['max_prob'], body['min_prob'])
 
         return {
             "statusCode": 200,
             "headers": {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
-                "Access-Control-Allow-Credentials": True
-
+                'Accept': '*/*',
+                'Accept-Encoding': 'gzip, deflate',
+                'Access-Control-Allow-Headers': '*'
             },
             "body": json.dumps({'paraphrased_content': paraphrased_content})
         }
@@ -92,7 +101,9 @@ def paraphrase(event, context):
             "headers": {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
-                "Access-Control-Allow-Credentials": True
+                'Accept': '*/*',
+                'Accept-Encoding': 'gzip, deflate',
+                'Access-Control-Allow-Headers': '*'
             },
             "body": json.dumps({"error": repr(e)})
         }

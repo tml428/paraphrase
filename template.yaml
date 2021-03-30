@@ -7,23 +7,23 @@ Description: >
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
-  Function:
-    Timeout: 3
+  Api:
+    Cors:
+      AllowHeaders: "'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, Authorization'"
+      AllowOrigin: "'*'"
+    Auth:
+      AddDefaultAuthorizerToCorsPreflight: False
 
 Resources:
-  pytorchEndpoint:
+  lambdaEndpoint:
     Type: AWS::Serverless::Function
     Properties:
       PackageType: Image
       MemorySize: 5000
       Timeout: 900
       Events:
-        ApiEndpoint:
+        restApiEndpoint:
           Type: HttpApi
-          Properties:
-            Path: /inference
-            Method: post
-            TimeoutInMillis: 55000
     Metadata:
       Dockerfile: Dockerfile
       DockerContext: ./paraphrase
