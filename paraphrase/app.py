@@ -4,6 +4,7 @@ from functools import reduce
 import random
 import math
 import json
+import base64
 
 tokenizer = AutoTokenizer.from_pretrained("model/")
 model = AutoModelForSeq2SeqLM.from_pretrained("model/")
@@ -11,9 +12,9 @@ model = AutoModelForSeq2SeqLM.from_pretrained("model/")
 def get_decoded_output(output):
     return tokenizer.decode(output, skip_special_tokens=True, clean_up_tokenization_spaces=True)
 
-def get_normalized_rouge_output(output):
+def get_normalized_rouge_output(output, maxProb, minProb):
     print(output)
-    if  output[1] > 0.7 and output[1] < 0.9:
+    if  output[1] > minProb and output[1] < maxProb:
         return True
     return False
 
@@ -30,6 +31,7 @@ def predict(original_sentences, method="beam", maxProb = 0.9, minProb = 0.7):
         encoding = tokenizer.encode_plus(text, pad_to_max_length=True, return_tensors="pt")
         input_ids, attention_masks = encoding["input_ids"], encoding["attention_mask"]
 
+        
         if method == "top_k":
             outputs = model.generate(
                 input_ids=input_ids, attention_mask=attention_masks,
@@ -39,8 +41,8 @@ def predict(original_sentences, method="beam", maxProb = 0.9, minProb = 0.7):
                 # this block include args to using top k/p samplings
                 do_sample=True,
                 top_k=120,
-                top_p=0.7,
-                temperature=0.7
+                top_p=maxProb,
+                temperature=minProb
             )
         else:
             outputs = model.generate(
@@ -56,7 +58,7 @@ def predict(original_sentences, method="beam", maxProb = 0.9, minProb = 0.7):
             )
 
         decoded_ouputs = list(map(get_decoded_output, outputs))
-
+        print(decoded_ouputs)
         rouge_scores = []
         for predicted_output in decoded_ouputs:
             score = scorer.score(sentence, predicted_output)
@@ -64,7 +66,7 @@ def predict(original_sentences, method="beam", maxProb = 0.9, minProb = 0.7):
             rouge_scores.append(score)
 
         combined_results = zip(decoded_ouputs, rouge_scores)
-        candidates = list(filter(lambda result: get_normalized_rouge_output(result), combined_results))
+        candidates = list(filter(lambda result: get_normalized_rouge_output(result, maxProb, minProb), combined_results))
         # print(candidates)
 
         if candidates:
@@ -96,14 +98,30 @@ def paraphrase(event, context):
             "body": json.dumps({'paraphrased_content': paraphrased_content})
         }
     except Exception as e:
-        return {
-            "statusCode": 500,
-            "headers": {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Accept': '*/*',
-                'Accept-Encoding': 'gzip, deflate',
-                'Access-Control-Allow-Headers': '*'
-            },
-            "body": json.dumps({"error": repr(e)})
-        }
+        try:
+            body = json.loads(base64.b64decode(event['body']))
+            paraphrased_content = predict(body['original_content'], body['method'], body['max_prob'], body['min_prob'])
+
+            return {
+                "statusCode": 200,
+                "headers": {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Accept': '*/*',
+                    'Accept-Encoding': 'gzip, deflate',
+                    'Access-Control-Allow-Headers': '*'
+                },
+                "body": json.dumps({'paraphrased_content': paraphrased_content})
+            }
+        except Exception as e:
+            return {
+                "statusCode": 500,
+                "headers": {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Accept': '*/*',
+                    'Accept-Encoding': 'gzip, deflate',
+                    'Access-Control-Allow-Headers': '*'
+                },
+                "body": json.dumps({"error": repr(e)})
+            }
