@@ -2,34 +2,17 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   python3.8
-
   Paraphrase Model on Lambda
 
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
-Globals:
-  Api:
-    Cors:
-      AllowHeaders: "'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, Authorization'"
-      AllowOrigin: "'*'"
-    Auth:
-      AddDefaultAuthorizerToCorsPreflight: False
-
 Resources:
-  lambdaEndpoint:
+  ParaphraseEndpoint:
     Type: AWS::Serverless::Function
     Properties:
       PackageType: Image
       MemorySize: 5000
       Timeout: 900
       Events:
-        restApiEndpoint:
-          Type: HttpApi
     Metadata:
       Dockerfile: Dockerfile
       DockerContext: ./paraphrase
       DockerTag: python3.8-v1
-
-Outputs:
-  InferenceApi:
-    Description: 'API Gateway endpoint URL for Prod stage for inference function'
-    Value: !Sub 'https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/inference'
