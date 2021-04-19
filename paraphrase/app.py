@@ -1,15 +1,13 @@
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from rouge_score import rouge_scorer
-from functools import reduce
-import random
-import math
+from random import randrange
 import json
 import base64
 import re
 
 tokenizer = AutoTokenizer.from_pretrained("model/")
 model = AutoModelForSeq2SeqLM.from_pretrained("model/")
-
+scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
 
 def get_decoded_output(output):
     return tokenizer.decode(output, skip_special_tokens=True, clean_up_tokenization_spaces=True)
@@ -21,15 +19,11 @@ def get_normalized_rouge_output(output, maxProb, minProb):
     return False
 
 
-scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
-
-
 def predict(
     original_sentences, method="beam", maxProb=0.9, minProb=0.7, variables=[], topP=0.9, topK=120, kpTemperature=0.4
 ):
     paraphrased_content = []
-    inputOutputCandidates = []
-
+    # inputOutputCandidates = []
     for sentence in original_sentences:
         # comment to suppress output
         # print('original_sentence: ' + sentence)
@@ -57,9 +51,9 @@ def predict(
                 max_length=256,
                 early_stopping=True,
                 # this block include args to using beam search
-                num_return_sequences=10,
-                num_beams=50,
-                num_beam_groups=50,
+                num_return_sequences=7,
+                num_beams=28,
+                num_beam_groups=14,
                 diversity_penalty=0.4,
             )
 
@@ -74,12 +68,12 @@ def predict(
         candidates = list(
             filter(lambda result: get_normalized_rouge_output(result, maxProb, minProb), combined_results)
         )
-        inputOutputCandidates.append({"original_sentence": sentence, "candidates": candidates})
+        # inputOutputCandidates.append({"original_sentence": sentence, "candidates": candidates})
 
         # print(candidates)
 
         if candidates:
-            paraphrasedSentence = candidates[math.floor(random.random() * len(candidates))][0]
+            paraphrasedSentence = candidates[randrange(len(candidates))][0]
             # comment to suppress output
             # print('winner: ' + winner[0])
         else:
@@ -98,7 +92,7 @@ def predict(
             re.IGNORECASE,
         )
 
-    return {"paraphrased_content": paraphrasedOutput, "inputOutputCandidates": inputOutputCandidates}
+    return {"paraphrased_content": paraphrasedOutput}
 
 
 def constructResponse(statusCode, responseBody):
@@ -130,14 +124,14 @@ def getPredictedResponse(requestBody):
 
 def paraphrase(event, context):
     try:
-        body = json.loads(event["body"])
+        body = json.loads(base64.b64decode(event["body"]))
         paraphrased_content = getPredictedResponse(body)
         return constructResponse(200, paraphrased_content)
-
     except Exception as e:
         try:
-            body = json.loads(base64.b64decode(event["body"]))
-            paraphrased_content = getPredictedResponse(body)
+            # body = json.loads(event["body"])
+            # paraphrased_content = getPredictedResponse(body)
+            paraphrased_content = getPredictedResponse(event["body"])
             return constructResponse(200, paraphrased_content)
         except Exception as e:
             return constructResponse(500, {"error": repr(e)})
