@@ -9,6 +9,7 @@ tokenizer = AutoTokenizer.from_pretrained("model/")
 model = AutoModelForSeq2SeqLM.from_pretrained("model/")
 scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
 
+
 def get_decoded_output(output):
     return tokenizer.decode(output, skip_special_tokens=True, clean_up_tokenization_spaces=True)
 
@@ -19,43 +20,26 @@ def get_normalized_rouge_output(output, maxProb, minProb):
     return False
 
 
-def predict(
-    original_sentences, method="beam", maxProb=0.9, minProb=0.7, variables=[], topP=0.9, topK=120, kpTemperature=0.4
-):
-    paraphrased_content = []
-    # inputOutputCandidates = []
-    for sentence in original_sentences:
-        # comment to suppress output
-        # print('original_sentence: ' + sentence)
+def predict(original_sentences, variables=[]):
+    maxProb = 0.9
+    minProb = 0.5
 
+    paraphrased_content = []
+    for sentence in original_sentences:
         text = "paraphrase: " + sentence + " </s>"
         encoding = tokenizer.encode_plus(text, pad_to_max_length=True, return_tensors="pt")
         input_ids, attention_masks = encoding["input_ids"], encoding["attention_mask"]
 
-        if method == "top_k":
-            outputs = model.generate(
-                input_ids=input_ids,
-                attention_mask=attention_masks,
-                max_length=256,
-                early_stopping=True,
-                # this block include args to using top k/p samplings
-                do_sample=True,
-                top_k=topK,
-                top_p=topP,
-                temperature=kpTemperature,
-            )
-        else:
-            outputs = model.generate(
-                input_ids=input_ids,
-                attention_mask=attention_masks,
-                max_length=256,
-                early_stopping=True,
-                # this block include args to using beam search
-                num_return_sequences=7,
-                num_beams=28,
-                num_beam_groups=14,
-                diversity_penalty=0.4,
-            )
+        outputs = model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_masks,
+            max_length=256,
+            early_stopping=True,
+            num_return_sequences=7,
+            num_beams=14,
+            num_beam_groups=14,
+            diversity_penalty=0.4,
+        )
 
         decoded_ouputs = list(map(get_decoded_output, outputs))
 
@@ -68,18 +52,11 @@ def predict(
         candidates = list(
             filter(lambda result: get_normalized_rouge_output(result, maxProb, minProb), combined_results)
         )
-        # inputOutputCandidates.append({"original_sentence": sentence, "candidates": candidates})
-
-        # print(candidates)
 
         if candidates:
             paraphrasedSentence = candidates[randrange(len(candidates))][0]
-            # comment to suppress output
-            # print('winner: ' + winner[0])
         else:
             paraphrasedSentence = sentence
-            # comment to suppress output
-            # print('sentence: '+ sentence)
         paraphrased_content.append(paraphrasedSentence)
 
     paraphrasedOutput = " ".join(paraphrased_content)
@@ -112,13 +89,7 @@ def constructResponse(statusCode, responseBody):
 def getPredictedResponse(requestBody):
     return predict(
         requestBody["original_content"],
-        requestBody["method"],
-        requestBody["max_prob"],
-        requestBody["min_prob"],
         requestBody["variables"],
-        requestBody["topP"],
-        requestBody["topK"],
-        requestBody["kpTemperature"],
     )
 
 
