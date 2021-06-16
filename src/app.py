@@ -109,8 +109,6 @@ def paraphrase(event, context):
         return constructResponse(200, paraphrased_content)
     except Exception as e:
         try:
-            # body = json.loads(event["body"])
-            # paraphrased_content = getPredictedResponse(body)
             paraphrased_content = getPredictedResponse(event["body"])
             return constructResponse(200, paraphrased_content)
         except Exception as e:
