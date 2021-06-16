@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
   python3.8
@@ -12,7 +12,12 @@ Resources:
       MemorySize: 5000
       Timeout: 900
       Events:
+        ParaphraseCodeBuildApi:
+          Type: Api
+          Properties:
+            Path: /codeBuild-paraphrase
+            Method: POST
     Metadata:
       Dockerfile: Dockerfile
-      DockerContext: ./paraphrase
+      DockerContext: ./src
       DockerTag: python3.8-v1
