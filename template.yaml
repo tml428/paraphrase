@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
   python3.8
-  Paraphrase Model on Lambda
+  Paraphrase Model on Lambda by Codebuild
 
 Resources:
   ParaphraseEndpoint:
@@ -15,7 +15,7 @@ Resources:
         ParaphraseCodeBuildApi:
           Type: Api
           Properties:
-            Path: /codeBuild-paraphrase
+            Path: /codebuild-paraphrase
             Method: POST
     Metadata:
       Dockerfile: Dockerfile
