@@ -17,12 +17,8 @@ Resources:
           Properties:
             Path: /codebuild-paraphrase
             Method: POST
+            RestApiId: lx9apt2t6d
     Metadata:
       Dockerfile: Dockerfile
       DockerContext: ./src
       DockerTag: python3.8-v1
-
-Outputs:
-  paraphraseApi:
-    Description: "API Gateway"
-    Value: !Sub "https://${ParaphraseEndpoint}.execute-api.${AWS::Region}.amazonaws.com/codebuild-paraphrase"
