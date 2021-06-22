@@ -15,7 +15,7 @@ Resources:
     Type: AWS::ApiGateway::Resource
     Properties:
       ParentId: !ImportValue qa-ExtApiGatewayRestApiRootResourceId
-      PathPart: "paraphrase-codebuil"
+      PathPart: paraphrase-codebuild
       RestApiId: !ImportValue qa-ExtApiGatewayRestApiId
 
   apiGatewayRootMethod:
@@ -23,8 +23,6 @@ Resources:
     Properties:
       AuthorizationType: NONE
       HttpMethod: POST
-      RequestParameters:
-        method.request.path.paraphraseCodebuild: true
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY
@@ -40,6 +38,7 @@ Resources:
       - apiGatewayRootMethod
     Properties:
       RestApiId: !ImportValue qa-ExtApiGatewayRestApiId
+      StageName: qa
 
   lambdaFunction:
     Type: AWS::Lambda::Function
@@ -48,7 +47,7 @@ Resources:
         ImageUri: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/paraphrase-codebuild-1:latest-paraphrase
       FunctionName: !Ref lambdaFunctionName
       PackageType: Image
-      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/codebuild-paraphrase-test-codebuild-1-service-role
+      Role: !GetAtt paraphraseIAMRole.Arn
       MemorySize: 5000
       Timeout: 900
 
@@ -59,27 +58,18 @@ Resources:
       Principal: apigateway.amazonaws.com
       FunctionName: !GetAtt lambdaFunction.Arn
 
-  # lambdaLogGroup:
-  #   Type: AWS::Logs::LogGroup
-  #   Properties:
-  #     LogGroupName: !Sub /aws/lambda/${lambdaFunctionName}
-# Resources:
-#   ParaphraseEndpoint:
-#     Type: AWS::Serverless::Function
-#     Properties:
-#       PackageType: Image
-#       MemorySize: 5000
-#       Timeout: 900
-#       Events:
-#         ParaphraseCodeBuildApi:
-#           Type: Api
-#           Properties:
-#             Path: /paraphrase
-#             Method: POST
-#             EndpointCongifuration: REGIONAL
-#             Domain:
-#               DomainName: node-lambda-paraphrase-qa.1stdibs.com
-#     Metadata:
-#       Dockerfile: Dockerfile
-#       DockerContext: ./src
-#       DockerTag: paraphrase-codebuild
+  paraphraseIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - apigateway.amazonaws.com
+      ManagedPolicyArns:
+        - !Sub arn:aws:iam::${AWS::AccountId}:policy/dibsNodeLambdaDefault
