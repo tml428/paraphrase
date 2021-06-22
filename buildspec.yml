@@ -5,8 +5,10 @@ phases:
     runtime-versions:
       docker: 18
   pre_build:
+    on-failure: CONTINUE
     commands:
-      - aws ecr describe-repositories --repository-name dibs-fe-paraphrase || aws ecr create-repository -repository-name dibs-fe-paraphrase --image-scanning-configuration scanOnPush=true --region us-east-1
+      - aws ecr create-repository -repository-name dibs-fe-paraphrase --image-scanning-configuration scanOnPush=true --region us-east-1
+    finally:
       - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
       - aws ecr batch-delete-image --repository-name dibs-fe-paraphrase --image-ids imageTag=latest-paraphrase
       - docker build -t dibs-fe-paraphrase:latest-paraphrase .
