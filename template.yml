@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Paraphrase Model on Lambda by Codebuild
+
+Parameters:
+  endpointEnv:
+    Type: String
+    Default: "qa"
+  lambdaFunctionName:
+    Type: String
+    Default: paraphrase-cloudformation
+
+Resources:
+  ApiGatewayResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !ImportValue qa-ExtApiGatewayRestApiRootResourceId
+      PathPart: "paraphrase-codebuil"
+      RestApiId: !ImportValue qa-ExtApiGatewayRestApiId
+
+  apiGatewayRootMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      RequestParameters:
+        method.request.path.paraphraseCodebuild: true
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt lambdaFunction.Arn
+      RestApiId: !ImportValue qa-ExtApiGatewayRestApiId
+      ResourceId: !Ref ApiGatewayResource
+
+  apiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - apiGatewayRootMethod
+    Properties:
+      RestApiId: !ImportValue qa-ExtApiGatewayRestApiId
+
+  lambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ImageUri: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/paraphrase-codebuild-1:latest-paraphrase
+      FunctionName: !Ref lambdaFunctionName
+      PackageType: Image
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/codebuild-paraphrase-test-codebuild-1-service-role
+      MemorySize: 5000
+      Timeout: 900
+
+  lambdaApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      FunctionName: !GetAtt lambdaFunction.Arn
+
+  # lambdaLogGroup:
+  #   Type: AWS::Logs::LogGroup
+  #   Properties:
+  #     LogGroupName: !Sub /aws/lambda/${lambdaFunctionName}
+# Resources:
+#   ParaphraseEndpoint:
+#     Type: AWS::Serverless::Function
+#     Properties:
+#       PackageType: Image
+#       MemorySize: 5000
+#       Timeout: 900
+#       Events:
+#         ParaphraseCodeBuildApi:
+#           Type: Api
+#           Properties:
+#             Path: /paraphrase
+#             Method: POST
+#             EndpointCongifuration: REGIONAL
+#             Domain:
+#               DomainName: node-lambda-paraphrase-qa.1stdibs.com
+#     Metadata:
+#       Dockerfile: Dockerfile
+#       DockerContext: ./src
+#       DockerTag: paraphrase-codebuild

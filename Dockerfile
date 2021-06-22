@@ -10,13 +10,13 @@ RUN curl https://huggingface.co/ceshine/t5-paraphrase-paws-msrp-opinosis/resolve
 RUN curl https://huggingface.co/ceshine/t5-paraphrase-paws-msrp-opinosis/resolve/main/spiece.model -o ./model/spiece.model
 
 # Copy the earlier created requirements.txt file to the container
-COPY requirements.txt ./
+COPY ./src/requirements.txt ./
 
 # Install the python requirements from requirements.txt
 RUN python3.8 -m pip install -r requirements.txt
 
 # Copy the earlier created app.py file to the container
-COPY app.py ./
+COPY ./src/app.py ./
 
 # Set the CMD to your handler
 CMD ["app.paraphrase"]
