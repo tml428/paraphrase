@@ -6,12 +6,12 @@ phases:
       docker: 18
   pre_build:
     commands:
-      - aws ecr describe-repositories --repository-names paraphrase-codebuild-1 || aws ecr create-repository -repository-name paraphrase-codebuild-1 --image-scanning-configuration scanOnPush=true --region us-east-1
+      - aws ecr describe-repositories --repository-name dibs-fe-paraphrase || aws ecr create-repository -repository-name dibs-fe-paraphrase --image-scanning-configuration scanOnPush=true --region us-east-1
       - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
-      - aws ecr batch-delete-image --repository-name paraphrase-codebuild-1 --image-ids imageTag=latest-paraphrase
-      - docker build -t paraphrase-codebuild-1:latest-paraphrase .
-      - docker tag paraphrase-codebuild-1:latest-paraphrase $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/paraphrase-codebuild-1:latest-paraphrase
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/paraphrase-codebuild-1:latest-paraphrase
+      - aws ecr batch-delete-image --repository-name dibs-fe-paraphrase --image-ids imageTag=latest-paraphrase
+      - docker build -t dibs-fe-paraphrase:latest-paraphrase .
+      - docker tag dibs-fe-paraphrase:latest-paraphrase $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/dibs-fe-paraphrase:latest-paraphrase
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/dibs-fe-paraphrase:latest-paraphrase
   build:
     commands:
-      - aws cloudformation deploy --template-file template.yml --stack-name paraphrase-codebuild-1 --capabilities CAPABILITY_IAM --region us-east-1
+      - aws cloudformation deploy --template-file template.yml --stack-name dibs-fe-paraphrase --parameter-overrides stage=$STAGE --capabilities CAPABILITY_IAM --region us-east-1

@@ -1,22 +1,24 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  Paraphrase Model on Lambda by Codebuild
+  Paraphrase Model on Lambda
 
 Parameters:
-  endpointEnv:
+  stage:
     Type: String
-    Default: "qa"
+    Default: qa
   lambdaFunctionName:
     Type: String
-    Default: paraphrase-cloudformation
+    Default: dibs-fe-paraphrase
 
 Resources:
   ApiGatewayResource:
     Type: AWS::ApiGateway::Resource
     Properties:
-      ParentId: !ImportValue qa-ExtApiGatewayRestApiRootResourceId
-      PathPart: paraphrase-codebuild
-      RestApiId: !ImportValue qa-ExtApiGatewayRestApiId
+      ParentId:
+        Fn::ImportValue: !Sub ${stage}-ExtApiGatewayRestApiRootResourceId
+      PathPart: paraphrase
+      RestApiId:
+        Fn::ImportValue: !Sub ${stage}-ExtApiGatewayRestApiId
 
   apiGatewayRootMethod:
     Type: AWS::ApiGateway::Method
@@ -29,7 +31,8 @@ Resources:
         Uri: !Sub
           - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
           - lambdaArn: !GetAtt lambdaFunction.Arn
-      RestApiId: !ImportValue qa-ExtApiGatewayRestApiId
+      RestApiId:
+        Fn::ImportValue: !Sub ${stage}-ExtApiGatewayRestApiId
       ResourceId: !Ref ApiGatewayResource
 
   apiGatewayDeployment:
@@ -37,8 +40,9 @@ Resources:
     DependsOn:
       - apiGatewayRootMethod
     Properties:
-      RestApiId: !ImportValue qa-ExtApiGatewayRestApiId
-      StageName: qa
+      RestApiId:
+        Fn::ImportValue: !Sub ${stage}-ExtApiGatewayRestApiId
+      StageName: !Ref stage
 
   lambdaFunction:
     Type: AWS::Lambda::Function
@@ -61,6 +65,7 @@ Resources:
   paraphraseIAMRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub ${lambdaFunctionName}-${AWS::Region}-lambdaRole-${stage}
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -70,6 +75,5 @@ Resources:
             Principal:
               Service:
                 - lambda.amazonaws.com
-                - apigateway.amazonaws.com
       ManagedPolicyArns:
         - !Sub arn:aws:iam::${AWS::AccountId}:policy/dibsNodeLambdaDefault
