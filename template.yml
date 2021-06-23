@@ -8,7 +8,7 @@ Parameters:
     Default: qa
   lambdaFunctionName:
     Type: String
-    Default: dibs-fe-paraphrase
+    Default: dibs-fe-paraphrase-test-new-role
 
 Resources:
   ApiGatewayResource:
