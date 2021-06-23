@@ -16,9 +16,10 @@ phases:
       # Uncomment the lines below if we want to delete old images from the repo before uploading the new image
       - IMAGES_TO_DELETE=$(aws ecr list-images --repository-name dibs-fe-paraphrase --query "imageIds[].imageDigest" --output text)
       - for image in $IMAGES_TO_DELETE; do aws ecr batch-delete-image --repository-name dibs-fe-paraphrase --image-ids imageDigest=$image; done
+  build:
+    commands:
       - docker build -t dibs-fe-paraphrase:latest-paraphrase .
       - docker tag dibs-fe-paraphrase:latest-paraphrase $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/dibs-fe-paraphrase:latest-paraphrase
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/dibs-fe-paraphrase:latest-paraphrase
-  build:
-    commands:
+      # Comment the line below if changes were made to container image only
       - aws cloudformation deploy --template-file template.yml --stack-name dibs-fe-paraphrase --parameter-overrides stage=$STAGE --capabilities CAPABILITY_NAMED_IAM --region us-east-1
