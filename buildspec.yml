@@ -14,7 +14,7 @@ phases:
       # Log into docker. Build and tag the updated image. Old images will be untagged.
       - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
       # Uncomment the lines below if we want to delete old images from the repo before uploading the new image
-      - IMAGES_TO_DELETE=$(aws ecr list-images --repository-name dibs-fe-paraphrase --query "imageIds[]" --output text)
+      - IMAGES_TO_DELETE=$(aws ecr list-images --repository-name dibs-fe-paraphrase --query "imageIds[].imageDigest" --output text)
       - for image in $IMAGES_TO_DELETE; do aws ecr batch-delete-image --repository-name dibs-fe-paraphrase --image-ids imageDigest=$image; done
       - docker build -t dibs-fe-paraphrase:latest-paraphrase .
       - docker tag dibs-fe-paraphrase:latest-paraphrase $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/dibs-fe-paraphrase:latest-paraphrase
