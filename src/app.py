@@ -10,12 +10,14 @@ tokenizer = AutoTokenizer.from_pretrained("model/")
 model = AutoModelForSeq2SeqLM.from_pretrained("model/")
 scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
 
+maxProb = 0.9
+minProb = 0.5
 
 def get_decoded_output(output):
     return tokenizer.decode(output, skip_special_tokens=True, clean_up_tokenization_spaces=True)
 
 
-def get_normalized_rouge_output(output, maxProb, minProb):
+def get_normalized_rouge_output(output):
     if minProb < output[1] and output[1] < maxProb:
         return True
     return False
@@ -34,9 +36,6 @@ def generate_predicton(encoding):
     return outputs
 
 def predict(original_sentences, variables=[]):
-    maxProb = 0.9
-    minProb = 0.5
-
     paraphrased_content = []
     original_sentences_encoding = []
 
@@ -60,7 +59,7 @@ def predict(original_sentences, variables=[]):
             rouge_scores.append(score)
         combined_results = zip(decoded_ouputs, rouge_scores)
         candidates = list(
-            filter(lambda result: get_normalized_rouge_output(result, maxProb, minProb), combined_results)
+            filter(lambda result: get_normalized_rouge_output(result), combined_results)
         )
         if candidates:
             paraphrasedSentence = candidates[randrange(len(candidates))][0]
