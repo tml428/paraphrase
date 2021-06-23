@@ -5,15 +5,17 @@ phases:
     runtime-versions:
       docker: 18
   pre_build:
-    on-failure: CONTINUE
     commands:
+      # Create a repository in ECR for the container image if one has not been created
       - REPO_LIST=$(aws ecr describe-repositories --query "repositories[].repositoryName" --output text)
-      # - aws ecr describe-repositories --repository-names dibs-fe-paraphrase || aws ecr create-repository --repository-name dibs-fe-paraphrase --image-scanning-configuration scanOnPush=true --region us-east-1
       - SHOULD_CREATE_NEW_PARAPHRASE_REPO=true
       - for repo in $REPO_LIST; do if [[ $repo == "dibs-fe-paraphrase" ]]; then SHOULD_CREATE_NEW_PARAPHRASE_REPO=false; fi; done
       - if [ "$SHOULD_SHOULD_CREATE_NEW_PARAPHRASE_REPO" == true ]; then aws ecr create-repository --repository-name dibs-fe-paraphrase --image-scanning-configuration scanOnPush=true --region us-east-1; fi
+      # Log into docker. Build and tag the updated image. Old images will be untagged.
       - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
-      # - aws ecr batch-delete-image --repository-name dibs-fe-paraphrase --image-ids imageTag=latest-paraphrase
+      # Uncomment the lines below if we want to delete old images from the repo before uploading the new image
+      - IMAGES_TO_DELETE=$(aws ecr list-images --repository-name dibs-fe-paraphrase --query "imageIds[]" --output text)
+      - for image in $IMAGES_TO_DELETE; do aws ecr batch-delete-image --repository-name dibs-fe-paraphrase --image-ids imageDigest=$image; done
       - docker build -t dibs-fe-paraphrase:latest-paraphrase .
       - docker tag dibs-fe-paraphrase:latest-paraphrase $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/dibs-fe-paraphrase:latest-paraphrase
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/dibs-fe-paraphrase:latest-paraphrase
