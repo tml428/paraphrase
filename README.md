@@ -29,7 +29,7 @@ curl --location --request POST 'http://localhost:9000/2015-03-31/functions/funct
 
 ## Implementation details
 
-This directory utilizes python, docker, and an array of AWS products (Cloudformation, Codebuild, Lambda, ApiGateway, iAM) to create a cloud-based service for running the paraphrasing function.
+test directory utilizes python, docker, and an array of AWS products (Cloudformation, Codebuild, Lambda, ApiGateway, iAM) to create a cloud-based service for running the paraphrasing function.
 
 ### The paraphrasing Model
 
